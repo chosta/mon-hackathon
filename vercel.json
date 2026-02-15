@@ -1,0 +1,7 @@
+{
+  "buildCommand": "",
+  "outputDirectory": "gateway/static",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
