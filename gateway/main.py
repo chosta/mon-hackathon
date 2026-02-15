@@ -291,7 +291,13 @@ async def game_action(req: SubmitActionRequest, claims: dict = Depends(require_a
     if isinstance(validation, JSONResponse):
         return validation
 
-    params = json.dumps([req.session_id, req.turn_index, req.action])
+    # Get player wallet address for the contract call
+    binding = await get_wallet_binding(moltbook_id)
+    if not binding:
+        raise HTTPException(400, "Link wallet first via /auth/link-simple")
+    player_address = binding["wallet_address"]
+
+    params = json.dumps([req.session_id, req.turn_index, req.action, player_address])
     tx_id = await enqueue_tx(req.action_id, moltbook_id, "submitAction", params)
     logger.info("action_queued", moltbook_id=moltbook_id, session_id=req.session_id, turn_index=req.turn_index, tx_id=tx_id)
 
