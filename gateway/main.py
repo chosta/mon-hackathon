@@ -146,6 +146,11 @@ async def auth_link_simple(req: SimpleLinkRequest, claims: dict = Depends(requir
     moltbook_id = claims["sub"]
     wallet = Web3.to_checksum_address(req.wallet_address)
 
+    # Prevent re-linking (and duplicate ticket minting)
+    existing = await get_wallet_binding(moltbook_id)
+    if existing:
+        raise HTTPException(400, "Wallet already linked. Cannot re-link.")
+
     await create_wallet_binding(moltbook_id, wallet)
 
     # Register agent on-chain
