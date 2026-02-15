@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "environment": "production",
+  "network": "monad-mainnet",
+  "chainId": null,
+  "rpc": null,
+  "status": "NOT_CONFIGURED",
+  "explorerUrl": null,
+  "deployer": null,
+  "contracts": null,
+  "notes": "Production environment. NOT CONFIGURED - will be blocked by skill."
+}

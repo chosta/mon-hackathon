@@ -1,0 +1,26 @@
+{
+  "network": "monad-testnet",
+  "chainId": 10143,
+  "rpc": "https://monad-testnet.drpc.org",
+  "deployer": "0x67C1F768F585303F1D33f512B4852C2DF9aCE705",
+  "deployedAt": "2026-02-13T14:19:00Z",
+  "contracts": {
+    "Gold": "0xC8c79A0e20E3F6baBe919236c029D0e82B2c7f2d",
+    "DungeonNFT": "0x036cc7113810DF5fEFC4034FaE37cf91Ee6AeD9F",
+    "DungeonTickets": "0xD4005AAb88957Ff956f1c1551235bEd6515Fac2d",
+    "DungeonManager": "0xc85f363897f8FA0d98dDCe5E98E2e8Cd78fC9599"
+  },
+  "configuration": {
+    "goldMinter": "DungeonManager",
+    "ticketsBurner": "DungeonManager",
+    "ticketPrice": "100000000000000000000",
+    "isConfigured": true
+  },
+  "testData": {
+    "dungeons": [
+      {"tokenId": 0, "difficulty": 3, "partySize": 3, "theme": "Cave", "rarity": "Common"},
+      {"tokenId": 1, "difficulty": 7, "partySize": 3, "theme": "Crypt", "rarity": "Rare"}
+    ],
+    "ticketsMinted": 10
+  }
+}

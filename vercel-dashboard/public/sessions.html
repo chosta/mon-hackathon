@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📋 Sessions - Mon-Hackathon</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#1a1a2e;color:#eee;font-family:'Segoe UI',system-ui,sans-serif;padding:1rem;min-height:100vh}
+a{color:#93c5fd;text-decoration:none}
+a:hover{text-decoration:underline}
+
+.header{display:flex;justify-content:space-between;align-items:center;padding:1rem;border-bottom:1px solid #333;margin-bottom:1rem}
+.header h1{font-size:1.4rem;color:#e0c097}
+.header-right{display:flex;align-items:center;gap:1rem}
+.nav-link{background:#0f3460;padding:6px 12px;border-radius:4px;font-size:.85rem;color:#93c5fd;border:1px solid #333}
+.nav-link:hover{background:#1a4a7a;text-decoration:none}
+.status{display:flex;align-items:center;gap:.5rem;font-size:.85rem;color:#aaa}
+.status .dot{width:8px;height:8px;border-radius:50%;background:#4ade80;display:inline-block}
+
+.controls{display:flex;gap:1rem;margin-bottom:1rem;align-items:center}
+select,input[type=checkbox]{background:#0f3460;color:#eee;border:1px solid #444;border-radius:4px;padding:6px 10px;font-size:.85rem}
+label{font-size:.85rem;color:#aaa;display:flex;align-items:center;gap:.5rem}
+
+.sessions-grid{display:grid;gap:1rem}
+
+.session-card{background:#16213e;border:1px solid #333;border-radius:8px;padding:1rem}
+.session-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem}
+.session-title{font-size:1.1rem;color:#e0c097;font-weight:600}
+.session-state{padding:4px 10px;border-radius:4px;font-size:.8rem;font-weight:500}
+.state-waiting{background:#854d0e;color:#fcd34d}
+.state-waitingdm{background:#9a3412;color:#fdba74}
+.state-active{background:#166534;color:#86efac}
+.state-completed{background:#1e40af;color:#93c5fd}
+.state-failed{background:#991b1b;color:#fca5a5}
+.state-cancelled{background:#374151;color:#9ca3af}
+.state-timedout{background:#78350f;color:#fde68a}
+
+.session-info{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.75rem;margin-bottom:.75rem}
+.info-item{background:#0f3460;padding:.5rem;border-radius:4px}
+.info-label{font-size:.7rem;color:#888;text-transform:uppercase;margin-bottom:.2rem}
+.info-value{font-size:.9rem;color:#e0c097}
+
+.dungeon-traits{display:flex;gap:.75rem;flex-wrap:wrap;padding:.5rem 0;border-top:1px solid #333;margin-top:.5rem}
+.trait{background:#374151;padding:3px 8px;border-radius:3px;font-size:.75rem;color:#d1d5db}
+.trait-rarity{font-weight:600}
+.rarity-common{background:#374151;color:#9ca3af}
+.rarity-rare{background:#1e40af;color:#93c5fd}
+.rarity-epic{background:#7c3aed;color:#c4b5fd}
+.rarity-legendary{background:#b45309;color:#fcd34d}
+
+.session-actions{display:flex;gap:.5rem;margin-top:.75rem;padding-top:.75rem;border-top:1px solid #333}
+.btn{background:#0f3460;border:1px solid #444;color:#93c5fd;padding:6px 12px;border-radius:4px;font-size:.8rem;cursor:pointer}
+.btn:hover{background:#1a4a7a}
+
+.empty{color:#666;text-align:center;padding:3rem;font-style:italic}
+.fade{animation:fadeIn .3s}
+@keyframes fadeIn{from{opacity:.7}to{opacity:1}}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>📋 Sessions</h1>
+  <div class="header-right">
+    <a href="/" class="nav-link">🏰 Dashboard</a>
+    <div class="status">
+      <span class="dot" id="statusDot"></span>
+      <span id="statusText">Loading...</span>
+    </div>
+  </div>
+</div>
+
+<div class="controls">
+  <label>
+    <input type="checkbox" id="showCompleted" onchange="refresh()">
+    Show completed sessions
+  </label>
+</div>
+
+<div class="sessions-grid" id="sessionsGrid">
+  <div class="empty">Loading sessions...</div>
+</div>
+
+<script>
+function getStateClass(state) {
+  const map = {
+    'Waiting': 'state-waiting',
+    'WaitingDM': 'state-waitingdm',
+    'Active': 'state-active',
+    'Completed': 'state-completed',
+    'Failed': 'state-failed',
+    'Cancelled': 'state-cancelled',
+    'TimedOut': 'state-timedout'
+  };
+  return map[state] || 'state-waiting';
+}
+
+function getRarityClass(rarity) {
+  if (!rarity) return '';
+  return 'rarity-' + rarity.toLowerCase();
+}
+
+function fmtTime(ts) {
+  if (!ts) return '-';
+  const d = new Date(ts * 1000);
+  return d.toLocaleString('en-GB', {
+    day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+  });
+}
+
+function esc(s) {
+  if (!s) return '-';
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function truncAddr(addr) {
+  if (!addr) return '-';
+  return addr.slice(0, 6) + '...' + addr.slice(-4);
+}
+
+function renderSessions(sessions) {
+  const grid = document.getElementById('sessionsGrid');
+  
+  if (!sessions || sessions.length === 0) {
+    grid.innerHTML = '<div class="empty">No sessions found</div>';
+    return;
+  }
+  
+  grid.innerHTML = sessions.map(s => {
+    const t = s.dungeon_traits || {};
+    const rarityClass = getRarityClass(t.rarity);
+    const stateClass = getStateClass(s.state_name);
+    
+    return `<div class="session-card fade">
+      <div class="session-header">
+        <span class="session-title">Session #${s.session_id}</span>
+        <span class="session-state ${stateClass}">${s.state_name}</span>
+      </div>
+      
+      <div class="session-info">
+        <div class="info-item">
+          <div class="info-label">Dungeon</div>
+          <div class="info-value">#${s.dungeon_id}</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Turn</div>
+          <div class="info-value">${s.current_turn || 0}</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Gold Pool</div>
+          <div class="info-value">${s.gold_pool || 0} / ${s.max_gold || 0}</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Actions</div>
+          <div class="info-value">${s.action_count || 0}</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">DM</div>
+          <div class="info-value">${s.dm ? truncAddr(s.dm) : 'None'}</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Current Actor</div>
+          <div class="info-value">${s.current_actor ? truncAddr(s.current_actor) : '-'}</div>
+        </div>
+      </div>
+      
+      ${t.rarity ? `<div class="dungeon-traits">
+        <span class="trait trait-rarity ${rarityClass}">${t.rarity}</span>
+        <span class="trait">🏔️ ${t.theme || '?'}</span>
+        <span class="trait">⚔️ Difficulty ${t.difficulty || '?'}</span>
+        <span class="trait">👥 ${t.party_size || '?'} players</span>
+      </div>` : ''}
+      
+      <div class="session-actions">
+        <a href="/session/${s.session_id}/playthrough" target="_blank" class="btn">📖 View Playthrough</a>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function refresh() {
+  const showCompleted = document.getElementById('showCompleted').checked;
+  try {
+    const sessions = await fetch(`http://209.38.108.24:8000/sessions/list?include_completed=${showCompleted}&limit=50`).then(r => r.json());
+    renderSessions(sessions);
+    document.getElementById('statusDot').className = 'dot';
+    document.getElementById('statusText').textContent = `${sessions.length} sessions`;
+  } catch(e) {
+    console.error('refresh failed', e);
+    document.getElementById('statusDot').style.background = '#f87171';
+    document.getElementById('statusText').textContent = 'Error: ' + e.message;
+  }
+}
+
+setInterval(refresh, 15000);
+refresh();
+</script>
+</body>
+</html>

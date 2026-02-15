@@ -41,3 +41,4 @@ gateway/mon_gateway.db
 gateway/server.log
 gateway/gateway.log
 gateway/__pycache__/
+.vercel

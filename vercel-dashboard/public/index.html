@@ -158,8 +158,8 @@ select:focus{outline:1px solid #e0c097}
 <div class="header">
   <h1>🏰 Mon-Hackathon Dashboard</h1>
   <div class="header-right">
-    <a href="/dashboard/sessions.html" class="nav-link">📋 Sessions</a>
-    <a href="/dashboard/activity.html" class="nav-link">📜 Activity</a>
+    <a href="/sessions.html" class="nav-link">📋 Sessions</a>
+    <a href="/activity.html" class="nav-link">📜 Activity</a>
     <div class="status">
       <span class="dot" id="statusDot"></span>
       <span id="statusText">Connecting...</span>
@@ -238,6 +238,7 @@ select:focus{outline:1px solid #e0c097}
 </div>
 
 <script>
+const API_BASE = 'http://209.38.108.24:8000';
 let lastData = null, lastUpdate = 0;
 
 function fmt(ts) {
@@ -489,12 +490,12 @@ async function refresh() {
   const minutes = document.getElementById('actWindow').value;
   try {
     const [overview, leaderboard, activity, epoch, dungeonOverview, dungeons] = await Promise.all([
-      fetch('https://mon-hackathon-gateway-production.up.railway.app/stats/overview').then(r => r.json()),
-      fetch('https://mon-hackathon-gateway-production.up.railway.app/leaderboard/table').then(r => r.json()),
-      fetch(`/activity/recent?minutes=${minutes}`).then(r => r.json()),
-      fetch('https://mon-hackathon-gateway-production.up.railway.app/game/epoch').then(r => r.json()).catch(() => null),
-      fetch('https://mon-hackathon-gateway-production.up.railway.app/dungeons/overview').then(r => r.json()).catch(() => null),
-      fetch('https://mon-hackathon-gateway-production.up.railway.app/dungeons/list').then(r => r.json()).catch(() => []),
+      fetch(`${API_BASE}/stats/overview`).then(r => r.json()),
+      fetch(`${API_BASE}/leaderboard/table`).then(r => r.json()),
+      fetch(`${API_BASE}/activity/recent?minutes=${minutes}`).then(r => r.json()),
+      fetch(`${API_BASE}/game/epoch`).then(r => r.json()).catch(() => null),
+      fetch(`${API_BASE}/dungeons/overview`).then(r => r.json()).catch(() => null),
+      fetch(`${API_BASE}/dungeons/list`).then(r => r.json()).catch(() => []),
     ]);
     lastData = {overview, leaderboard, activity, epoch, dungeonOverview, dungeons};
     lastUpdate = Date.now();
