@@ -200,7 +200,7 @@ async function refresh() {
   const dot = document.getElementById('statusDot');
   const txt = document.getElementById('statusText');
   try {
-    const activity = await fetch(`/activity/recent?minutes=${minutes}&limit=200`).then(r => r.json());
+    const activity = await fetch(`https://mon-hackathon-gateway-production.up.railway.app/activity/recent?minutes=${minutes}&limit=200`).then(r => r.json());
     lastUpdate = Date.now();
     dot.className = 'dot';
     txt.textContent = 'Live — updated ' + new Date().toLocaleTimeString('en-GB');
