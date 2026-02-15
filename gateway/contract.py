@@ -19,14 +19,19 @@ SESSION_STATES = {
     6: "TimedOut",
 }
 
-# Load ABI
-_abi_path = os.path.join(os.path.dirname(__file__), "..", "out", "DungeonManager.sol", "DungeonManager.json")
-if os.path.exists(_abi_path):
-    with open(_abi_path) as f:
-        _abi = json.load(f)["abi"]
+# Load ABI - check multiple locations
+_abi_paths = [
+    os.path.join(os.path.dirname(__file__), "..", "out", "DungeonManager.sol", "DungeonManager.json"),
+    os.path.join(os.path.dirname(__file__), "abi", "DungeonManager.json"),
+]
+_abi = []
+for _abi_path in _abi_paths:
+    if os.path.exists(_abi_path):
+        with open(_abi_path) as f:
+            _abi = json.load(f)["abi"]
+        break
 else:
-    _abi = []
-    logger.warning("abi_not_found", path=_abi_path)
+    logger.warning("abi_not_found", paths=_abi_paths)
 
 
 class NonceManager:
@@ -248,14 +253,19 @@ class ContractClient:
         }
 
 
-# Load DungeonNFT ABI for traits
-_nft_abi_path = os.path.join(os.path.dirname(__file__), "..", "out", "DungeonNFT.sol", "DungeonNFT.json")
-if os.path.exists(_nft_abi_path):
-    with open(_nft_abi_path) as f:
-        _nft_abi = json.load(f)["abi"]
+# Load DungeonNFT ABI for traits - check multiple locations
+_nft_abi_paths = [
+    os.path.join(os.path.dirname(__file__), "..", "out", "DungeonNFT.sol", "DungeonNFT.json"),
+    os.path.join(os.path.dirname(__file__), "abi", "DungeonNFT.json"),
+]
+_nft_abi = []
+for _nft_abi_path in _nft_abi_paths:
+    if os.path.exists(_nft_abi_path):
+        with open(_nft_abi_path) as f:
+            _nft_abi = json.load(f)["abi"]
+        break
 else:
-    _nft_abi = []
-    logger.warning("nft_abi_not_found", path=_nft_abi_path)
+    logger.warning("nft_abi_not_found", paths=_nft_abi_paths)
 
 
 class DungeonNFTClient:
