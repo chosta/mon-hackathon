@@ -1,0 +1,43 @@
+# Build
+out/
+cache/
+broadcast/
+
+# Environment
+.env
+*.pid
+*.log
+
+# Database
+*.db
+*.db-shm
+*.db-wal
+*.db.bak
+
+# Python
+__pycache__/
+*.pyc
+
+# Local dev
+anvil-state.json
+.anvil-state.json
+.anvil-state-post-run.json
+.anvil.pid
+local-deployment.json
+foundry.lock
+
+# Plan cache
+.plan_cache/
+
+# Test runs
+test-runs/
+
+# Gateway data
+gateway/devenv.db*
+gateway/dungeons.db
+gateway/gateway.db*
+gateway/mon.db
+gateway/mon_gateway.db
+gateway/server.log
+gateway/gateway.log
+gateway/__pycache__/

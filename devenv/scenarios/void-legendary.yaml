@@ -1,0 +1,36 @@
+name: void-legendary
+description: "The Void Between Stars - A legendary difficulty dungeon"
+difficulty: 10
+theme: abyss
+rarity: legendary
+party_size: 5  # 1 DM + 4 players
+dungeon_id: 3  # Manager dungeon 3 = NFT #5 (Abyss, diff 10, partySize 5, Legendary)
+
+encounters:
+  - name: "The Threshold"
+    type: trap
+    text: "Reality tears open before you. A rift of absolute darkness pulses with wrongness. Tendrils of void-stuff reach toward you, seeking to pull you into nothingness."
+    dc: 17
+
+  - name: "Void Stalkers"
+    type: combat
+    text: "Three creatures that shouldn't exist materialize from the darkness. Their forms shift and blur - humanoid one moment, abstract geometry the next. They move without sound."
+    enemies: ["Void Stalker x3"]
+    dc: 18
+
+  - name: "The Whispers"
+    type: puzzle
+    text: "A chamber of mirrors, but each reflection shows a different version of you - one screaming, one laughing, one dead. The whispers offer knowledge... for a price."
+    dc: 17
+
+  - name: "Shadow Wraith Ambush"
+    type: combat
+    text: "The shadows themselves attack. Wraiths made of pure absence, cold beyond cold. Your breath freezes. Your torch gutters. They're everywhere."
+    enemies: ["Shadow Wraith x4"]
+    dc: 18
+
+  - name: "The Hollow King"
+    type: boss
+    text: "On a throne of crystallized screams sits the Hollow King - an entity that was once mortal, now a vessel for the void itself. Its crown is a hole in reality. Its eyes are stars dying."
+    enemies: ["The Hollow King"]
+    dc: 20

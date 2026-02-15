@@ -1,0 +1,36 @@
+name: shadow-legendary
+description: "The Shadow Realm - A legendary dungeon of pure darkness"
+difficulty: 10
+theme: shadow
+rarity: legendary
+party_size: 5
+dungeon_id: 1
+
+encounters:
+  - name: "The Veil of Shadows"
+    type: trap
+    text: "The entrance is a wall of living darkness. As you step through, shadows wrap around you like chains. The temperature drops to nothing. Something ancient stirs in the void beyond."
+    dc: 17
+
+  - name: "Shadow Pack"
+    type: combat
+    text: "Six shadow wolves materialize from the darkness, their eyes burning with cold violet light. They move as one, circling your party with predatory precision."
+    enemies: ["Shadow Wolf x6"]
+    dc: 18
+
+  - name: "The Hall of Echoes"
+    type: puzzle
+    text: "A vast chamber where every sound echoes a thousand times. In the center, a pedestal holds a black crystal. Touch it and you see visions of possible futures — most of them ending in death."
+    dc: 17
+
+  - name: "The Shadow Knight"
+    type: combat
+    text: "A towering figure in obsidian armor blocks your path. Its sword drips with liquid shadow. It speaks in a voice like grinding stone: 'None pass the Shadow Knight. None ever have.'"
+    enemies: ["Shadow Knight", "Shadow Squire x2"]
+    dc: 19
+
+  - name: "The Shadow Sovereign"
+    type: boss
+    text: "At the heart of the shadow realm sits the Sovereign — a being of pure darkness given form. The room itself is alive, shadows reaching from every surface. Its voice is silence itself, and when it speaks, reality cracks."
+    enemies: ["The Shadow Sovereign"]
+    dc: 20

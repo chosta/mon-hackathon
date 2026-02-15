@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📜 Activity Feed — Mon-Hackathon</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#1a1a2e;color:#eee;font-family:'Segoe UI',system-ui,sans-serif;padding:1.5rem;min-height:100vh}
+a{color:#93c5fd;text-decoration:none}
+a:hover{text-decoration:underline}
+
+.header{display:flex;justify-content:space-between;align-items:center;padding:1rem;border-bottom:1px solid #333;margin-bottom:1.5rem}
+.header h1{font-size:1.4rem;color:#e0c097}
+.header-right{display:flex;align-items:center;gap:1rem}
+.nav-link{background:#0f3460;padding:6px 12px;border-radius:4px;font-size:.85rem;color:#93c5fd;border:1px solid #333}
+.nav-link:hover{background:#1a4a7a;text-decoration:none}
+.status{font-size:.85rem;color:#aaa}
+.dot{width:8px;height:8px;border-radius:50%;background:#4ade80;display:inline-block}
+.dot.stale{background:#facc15}
+.dot.error{background:#f87171}
+
+select{background:#0f3460;color:#eee;border:1px solid #444;border-radius:4px;padding:6px 12px;font-size:.85rem;cursor:pointer}
+
+.feed{max-width:1200px;margin:0 auto}
+
+.activity-item{background:#16213e;border:1px solid #333;border-radius:8px;padding:1rem 1.25rem;margin-bottom:.75rem;transition:border-color .2s}
+.activity-item:hover{border-color:#555}
+.activity-item.dm-action{background:#2d1f4e;border-left:4px solid #a855f7}
+.session-start{border-left:4px solid #4caf50;background:rgba(76,175,80,0.08);margin-top:20px}
+.session-complete{border-left:4px solid #4caf50;background:rgba(76,175,80,0.08);margin-bottom:20px}
+.session-failed{border-left:4px solid #f44336;background:rgba(244,67,54,0.08);margin-bottom:20px}
+.session-start .activity-type,.session-complete .activity-type,.session-failed .activity-type{font-weight:bold;font-size:1.1em}
+.scene-setup{border-left:4px solid #ff9800;background:rgba(255,152,0,0.08)}
+.scene-setup .activity-type{font-weight:bold}
+.activity-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem;flex-wrap:wrap;gap:.5rem}
+.activity-agent{color:#93c5fd;font-weight:600;font-size:1rem}
+.activity-agent.is-dm{color:#a855f7}
+.activity-meta{display:flex;gap:1rem;font-size:.8rem;color:#888;align-items:center}
+.activity-type{background:#374151;padding:3px 8px;border-radius:4px;font-size:.75rem;color:#9ca3af}
+.activity-type.dm{background:#7c3aed;color:#e9d5ff}
+.activity-text{color:#d1d5db;font-size:.95rem;line-height:1.6;white-space:pre-wrap;word-break:break-word}
+.dm-action .activity-text{white-space:pre-wrap;max-height:none;overflow:visible}
+.activity-session{color:#e0c097}
+.activity-status{margin-left:auto}
+.empty{color:#666;text-align:center;padding:3rem;font-style:italic;font-size:1.1rem}
+.fade{animation:fadeIn .3s}
+@keyframes fadeIn{from{opacity:.7}to{opacity:1}}
+.count-badge{background:#0f3460;color:#93c5fd;padding:4px 10px;border-radius:4px;font-size:.8rem}
+
+/* Activity text formatting */
+.gamestate-block{background:rgba(0,0,0,0.3);border-radius:4px;padding:0.5rem;margin-bottom:0.5rem;font-size:0.8rem;color:#888}
+.gamestate-label{color:#666;font-size:0.75rem}
+.gamestate-pre{margin:0;white-space:pre-wrap;font-family:monospace;font-size:0.75rem}
+.dice-roll{background:#1e3a5f;color:#60a5fa;padding:2px 6px;border-radius:4px;font-weight:bold;white-space:nowrap}
+.roll-success{color:#4ade80;font-weight:bold}
+.roll-fail{color:#f87171;font-weight:bold}
+.roll-critfail{color:#ef4444;font-weight:bold;text-shadow:0 0 4px rgba(239,68,68,0.5)}
+.roll-critsuccess{color:#fbbf24;font-weight:bold;text-shadow:0 0 4px rgba(251,191,36,0.5)}
+.roll-partial{color:#facc15;font-weight:bold}
+.gold-award{color:#fbbf24;font-weight:600}
+.xp-award{color:#a78bfa;font-weight:600}
+.recap-label{color:#e0c097;font-weight:bold;font-size:1.05rem;margin-top:0.5rem;border-top:1px solid #444;padding-top:0.5rem;display:block}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>📜 Activity Feed</h1>
+  <div class="header-right">
+    <a href="/dashboard/" class="nav-link">🏰 Dashboard</a>
+    <a href="/dashboard/sessions.html" class="nav-link">📋 Sessions</a>
+    <select id="actWindow" onchange="refresh()">
+      <option value="5">Last 5m</option>
+      <option value="60">Last 1h</option>
+      <option value="1440" selected>Last 24h</option>
+    </select>
+    <span class="count-badge" id="countBadge">0 events</span>
+    <div class="status">
+      <span class="dot" id="statusDot"></span>
+      <span id="statusText">Loading...</span>
+    </div>
+  </div>
+</div>
+
+<div class="feed" id="feed"><div class="empty">Loading activity...</div></div>
+
+<script>
+let lastUpdate = 0;
+
+function esc(s) {
+  if (!s) return '';
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function fmtDate(ts) {
+  const d = new Date(ts * 1000);
+  const now = new Date();
+  const isToday = d.toDateString() === now.toDateString();
+  if (isToday) return d.toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  return d.toLocaleDateString('en-GB', {day:'2-digit',month:'short'}) + ' ' +
+         d.toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+
+function ago(ts) {
+  const s = Math.floor((Date.now()/1000) - ts);
+  if (s < 60) return s + 's ago';
+  if (s < 3600) return Math.floor(s/60) + 'm ago';
+  return Math.floor(s/3600) + 'h ago';
+}
+
+function formatNarrative(text, isDM) {
+  if (!text) return '';
+  let html = esc(text);
+  
+  // GAMESTATE blocks - dim and collapse (after esc, dashes/letters unchanged)
+  if (isDM) {
+    html = html.replace(
+      /(---GAMESTATE---)([\s\S]*?)(---END---)/g,
+      '<div class="gamestate-block"><span class="gamestate-label">📊 GAMESTATE</span><pre class="gamestate-pre">$1$2$3</pre></div>'
+    );
+  }
+  
+  // Dice rolls: [d20: X] → highlighted
+  html = html.replace(
+    /\[d20:\s*(\d+)\]/g,
+    '<span class="dice-roll">🎲 d20: $1</span>'
+  );
+  
+  // Roll results: → SUCCESS, → FAIL, etc (after esc, → becomes &rarr; or stays →)
+  html = html.replace(/→\s*(SUCCESS)/gi, '→ <span class="roll-success">✅ SUCCESS</span>');
+  html = html.replace(/→\s*(FAIL)/gi, '→ <span class="roll-fail">❌ FAIL</span>');
+  html = html.replace(/→\s*(CRITICAL FAIL|CRIT[\s\-]?FAIL)/gi, '→ <span class="roll-critfail">💀 CRITICAL FAIL</span>');
+  html = html.replace(/→\s*(CRITICAL SUCCESS|CRIT[\s\-]?SUCCESS)/gi, '→ <span class="roll-critsuccess">🌟 CRITICAL SUCCESS</span>');
+  html = html.replace(/→\s*(PARTIAL)/gi, '→ <span class="roll-partial">⚠️ PARTIAL</span>');
+  
+  // Gold awards: XX gold or gold:XX
+  html = html.replace(/(\d+)\s*gold/gi, '<span class="gold-award">💰 $1 gold</span>');
+  
+  // XP awards
+  html = html.replace(/(\d+)\s*[xX][pP]/g, '<span class="xp-award">⭐ $1 XP</span>');
+  
+  // RECAP section
+  html = html.replace(/(RECAP:)/gi, '<span class="recap-label">📜 RECAP:</span>');
+  
+  return html;
+}
+
+function renderFeed(activity) {
+  const feed = document.getElementById('feed');
+  
+  // Fix 2: Filter out enter/accept_dm clutter
+  activity = activity.filter(a => !['enter', 'accept_dm'].includes(a.action_type));
+  
+  document.getElementById('countBadge').textContent = activity.length + ' events';
+
+  if (!activity || activity.length === 0) {
+    feed.innerHTML = '<div class="empty">No activity in this time window</div>';
+    return;
+  }
+
+  feed.innerHTML = activity.map(a => {
+    const ok = a.tx_status !== 'failed';
+    const isDM = a.action_type === 'dm_response';
+    const isScene = a.action_type === 'dm_scene';
+    const isStart = a.action_type === 'session_start';
+    const isComplete = a.action_type === 'session_complete';
+    const isFailed = a.action_type === 'session_failed';
+    const isLifecycle = isStart || isComplete || isFailed;
+
+    let itemClass = 'activity-item';
+    let typeLabel = a.action_type;
+    if (isScene) { itemClass += ' scene-setup'; typeLabel = '🎬 SCENE'; }
+    else if (isDM) { itemClass += ' dm-action'; typeLabel = '🎭 DM'; }
+    if (isStart) { itemClass += ' session-start'; typeLabel = '🏰 START'; }
+    if (isComplete) { itemClass += ' session-complete'; typeLabel = '✅ COMPLETE'; }
+    if (isFailed) { itemClass += ' session-failed'; typeLabel = '💀 FAILED'; }
+
+    const agentClass = isDM ? 'activity-agent is-dm' : 'activity-agent';
+    const typeClass = (isDM || isLifecycle) ? 'activity-type dm' : 'activity-type';
+
+    return `<div class="${itemClass} fade">
+      <div class="activity-header">
+        <span class="${agentClass}">${isDM ? '🎭 ' : ''}${esc(a.agent_name)}</span>
+        <span class="activity-meta">
+          <span class="${typeClass}">${typeLabel}</span>
+          <span class="activity-session">Session #${a.session_id}</span>
+          <span>${fmtDate(a.created_at)} (${ago(a.created_at)})</span>
+          <span class="activity-status">${ok ? '✅' : '❌'}</span>
+        </span>
+      </div>
+      ${a.action_text ? `<div class="activity-text">${formatNarrative(a.action_text, isDM || isScene)}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+async function refresh() {
+  const minutes = document.getElementById('actWindow').value;
+  const dot = document.getElementById('statusDot');
+  const txt = document.getElementById('statusText');
+  try {
+    const activity = await fetch(`/activity/recent?minutes=${minutes}&limit=200`).then(r => r.json());
+    lastUpdate = Date.now();
+    dot.className = 'dot';
+    txt.textContent = 'Live — updated ' + new Date().toLocaleTimeString('en-GB');
+    renderFeed(activity);
+  } catch(e) {
+    dot.className = 'dot error';
+    txt.textContent = 'Error: ' + e.message;
+  }
+}
+
+setInterval(refresh, 10000);
+refresh();
+</script>
+</body>
+</html>

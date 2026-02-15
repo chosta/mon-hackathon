@@ -1,0 +1,41 @@
+name: goblin-cave
+description: "A cave system infested with goblins"
+difficulty: 3
+party_size: 2  # Must match dungeon #2 (partySize=2, Easy Cave)
+dungeon_id: 2
+
+encounters:
+  - id: entrance
+    text: "The cave mouth yawns before you, reeking of goblin filth. Crude warnings scratched into the rock promise death to intruders."
+    next: [patrol, trap]
+
+  - id: patrol
+    text: "A goblin patrol spots you! Two snarling scouts draw rusty blades."
+    enemies: ["Goblin Scout", "Goblin Scout"]
+    on_victory: treasure
+    on_defeat: fail
+
+  - id: trap
+    text: "Click. You've triggered a pit trap! The ground gives way beneath your feet."
+    damage: [5, 15]
+    next: lair
+
+  - id: treasure
+    text: "Among the bodies, you find a small chest covered in goblin marks."
+    gold: [20, 40]
+    next: lair
+
+  - id: lair
+    text: "The Goblin Chief rises from his throne of bones, flanked by two bodyguards!"
+    enemies: ["Goblin Chief"]
+    is_boss: true
+    on_victory: complete
+    on_defeat: fail
+
+  - id: complete
+    text: "Victory! The goblin threat is ended. The cave yields its treasures to the victorious heroes."
+    gold: [50, 100]
+    xp: [30, 50]
+
+  - id: fail
+    text: "The party has fallen... The goblins drag the bodies deeper into the cave."
