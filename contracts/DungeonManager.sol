@@ -458,10 +458,10 @@ contract DungeonManager is Ownable, ReentrancyGuard, Pausable {
         emit DmSelected(sessionId, s.dm, s.dmEpoch);
     }
 
-    function acceptDM(uint256 sessionId, uint64 epoch) external {
+    function acceptDM(uint256 sessionId, uint64 epoch, address dm) external onlyRunner {
         Session storage s = sessions[sessionId];
         if (s.state != SessionState.WaitingDM) revert NotWaitingDM();
-        if (msg.sender != s.dm) revert NotSelectedDM();
+        if (dm != s.dm) revert NotSelectedDM();
         if (epoch != s.dmEpoch) revert StaleEpoch();
         if (block.timestamp > s.dmAcceptDeadline) revert DeadlineNotPassed();
 
@@ -472,7 +472,7 @@ contract DungeonManager is Ownable, ReentrancyGuard, Pausable {
         s.currentActor = s.party[0];
         s.turnDeadline = block.timestamp + TURN_TIMEOUT;
 
-        emit DmAccepted(sessionId, msg.sender);
+        emit DmAccepted(sessionId, dm);
         emit GameStarted(sessionId, s.dungeonId, s.dm, s.party);
     }
 
@@ -708,15 +708,15 @@ contract DungeonManager is Ownable, ReentrancyGuard, Pausable {
 
     // ============ Session Resolution ============
 
-    function flee(uint256 sessionId) external nonReentrant onlyConfigured {
+    function flee(uint256 sessionId, address agent) external nonReentrant onlyConfigured onlyRunner {
         Session storage session = sessions[sessionId];
         if (session.state != SessionState.Active) revert SessionNotActive();
-        if (!sessionPlayerAlive[sessionId][msg.sender]) revert PlayerNotAlive();
-        if (msg.sender == session.dm) revert InvalidTarget();
+        if (!sessionPlayerAlive[sessionId][agent]) revert PlayerNotAlive();
+        if (agent == session.dm) revert InvalidTarget();
 
-        uint256 playerGold = sessionPlayerGold[sessionId][msg.sender];
-        sessionPlayerGold[sessionId][msg.sender] = 0;
-        sessionPlayerAlive[sessionId][msg.sender] = false;
+        uint256 playerGold = sessionPlayerGold[sessionId][agent];
+        sessionPlayerGold[sessionId][agent] = 0;
+        sessionPlayerAlive[sessionId][agent] = false;
 
         uint256 royalty = (playerGold * ROYALTY_BPS) / 10000;
         uint256 goldToPlayer = playerGold - royalty;
@@ -725,14 +725,14 @@ contract DungeonManager is Ownable, ReentrancyGuard, Pausable {
         pendingRoyalties[dungeon.owner] += royalty;
 
         if (goldToPlayer > 0) {
-            gold.mint(msg.sender, goldToPlayer);
-            totalGoldEarned[msg.sender] += goldToPlayer;
+            gold.mint(agent, goldToPlayer);
+            totalGoldEarned[agent] += goldToPlayer;
         }
 
         // Release bond on flee
-        _releaseBond(msg.sender, sessionId);
+        _releaseBond(agent, sessionId);
 
-        emit PlayerFled(sessionId, msg.sender, goldToPlayer, royalty);
+        emit PlayerFled(sessionId, agent, goldToPlayer, royalty);
 
         if (_allPlayersDead(sessionId)) {
             _failSession(sessionId, "All adventurers fled or perished.");

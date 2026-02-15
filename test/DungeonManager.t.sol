@@ -72,8 +72,8 @@ contract DungeonManagerTest is Test {
     function _acceptDM(uint256 sessionId) internal {
         address dm = manager.getSessionDM(sessionId);
         uint64 epoch = manager.getSessionDmEpoch(sessionId);
-        vm.prank(dm);
-        manager.acceptDM(sessionId, epoch);
+        // Runner submits acceptDM on behalf of dm (address(this) is runner)
+        manager.acceptDM(sessionId, epoch, dm);
     }
 
     function _setupActiveSession() internal returns (uint256 dungeonId, uint256 sessionId, address dm, address nonDm) {
@@ -135,18 +135,18 @@ contract DungeonManagerTest is Test {
         address dm = manager.getSessionDM(sessionId);
         uint64 epoch = manager.getSessionDmEpoch(sessionId);
         address notDm = dm == player1 ? player2 : player1;
-        vm.prank(notDm);
+        // Runner calls with wrong dm address
         vm.expectRevert(DungeonManager.NotSelectedDM.selector);
-        manager.acceptDM(sessionId, epoch);
+        manager.acceptDM(sessionId, epoch, notDm);
     }
 
     function testDMAcceptStaleEpoch() public {
         uint256 dungeonId = _stakeDungeon();
         uint256 sessionId = _enterBothPlayers(dungeonId);
         address dm = manager.getSessionDM(sessionId);
-        vm.prank(dm);
+        // Runner calls with stale epoch
         vm.expectRevert(DungeonManager.StaleEpoch.selector);
-        manager.acceptDM(sessionId, 999);
+        manager.acceptDM(sessionId, 999, dm);
     }
 
     // ============ DM Reroll ============

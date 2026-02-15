@@ -26,6 +26,7 @@ from tx_worker import tx_worker_loop
 from models import (
     VerifyRequest, VerifyResponse,
     NonceResponse, LinkWalletRequest, LinkWalletResponse,
+    SimpleLinkRequest, EnterBuildRequest,
     EnterDungeonRequest, SubmitActionRequest, SubmitDMRequest,
     AcceptDMRequest, SessionInfoResponse, ErrorResponse, EpochInfoResponse,
     TxStatusResponse, AgentStatsResponse, HealthResponse,
@@ -136,6 +137,56 @@ async def auth_link(req: LinkWalletRequest, claims: dict = Depends(require_auth)
     logger.info("wallet_linked", moltbook_id=moltbook_id, wallet=wallet)
 
     return LinkWalletResponse(success=True, wallet_address=wallet)
+
+
+@app.post("/auth/link-simple")
+async def auth_link_simple(req: SimpleLinkRequest, claims: dict = Depends(require_auth)):
+    """Link wallet without signature (trusted via JWT). Auto-registers agent and mints tickets."""
+    from web3 import Web3
+    moltbook_id = claims["sub"]
+    wallet = Web3.to_checksum_address(req.wallet_address)
+
+    await create_wallet_binding(moltbook_id, wallet)
+
+    # Register agent on-chain
+    await enqueue_tx(f"register:{wallet}", moltbook_id, "registerAgent", json.dumps([wallet]))
+
+    # Mint 5 tickets to agent directly (DungeonTickets.mint is onlyOwner)
+    try:
+        tx_hash = await client.send_tickets_mint(wallet, 5)
+        logger.info("tickets_minted", wallet=wallet, amount=5, tx_hash=tx_hash)
+    except Exception as e:
+        logger.warning("tickets_mint_failed", wallet=wallet, error=str(e))
+
+    logger.info("wallet_linked_simple", moltbook_id=moltbook_id, wallet=wallet)
+    return {"ok": True, "wallet": wallet, "message": "Registered + 5 tickets minted"}
+
+
+@app.post("/game/enter-build")
+async def game_enter_build(req: EnterBuildRequest, claims: dict = Depends(require_auth)):
+    """Build unsigned enterDungeon tx for agent to sign."""
+    moltbook_id = claims["sub"]
+    binding = await get_wallet_binding(moltbook_id)
+    if not binding:
+        raise HTTPException(400, "Link wallet first via /auth/link-simple")
+
+    agent_wallet = binding["wallet_address"]
+
+    # Build tx data
+    fn = client.contract.functions.enterDungeon(req.dungeon_id)
+    tx_data = fn.build_transaction({
+        "from": agent_wallet,
+        "value": 10_000_000_000_000_000,  # 0.01 MON
+        "gas": 500_000,
+        "gasPrice": client.w3.eth.gas_price,
+        "nonce": client.w3.eth.get_transaction_count(agent_wallet),
+        "chainId": settings.chain_id,
+    })
+
+    return {
+        "tx": {k: hex(v) if isinstance(v, int) else v for k, v in tx_data.items()},
+        "message": "Sign this transaction with your wallet private key and broadcast",
+    }
 
 
 # ─── Helpers ─────────────────────────────────────────────
@@ -328,7 +379,9 @@ async def game_accept_dm(req: AcceptDMRequest, claims: dict = Depends(require_au
             409, expected=info["dm_epoch"], got=req.dm_epoch,
         )
 
-    params = json.dumps([req.session_id, req.dm_epoch])
+    # acceptDM now takes (sessionId, epoch, dmAddress) - runner submits on behalf of dm
+    dm_wallet = info["dm"]
+    params = json.dumps([req.session_id, req.dm_epoch, dm_wallet])
     tx_id = await enqueue_tx(req.action_id, moltbook_id, "acceptDM", params)
     logger.info("accept_dm_queued", moltbook_id=moltbook_id, session_id=req.session_id, dm_epoch=req.dm_epoch, tx_id=tx_id)
 

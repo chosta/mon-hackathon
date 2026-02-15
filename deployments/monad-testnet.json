@@ -8,13 +8,16 @@
   "faucet": "https://faucet.monad.xyz",
   "deployer": "0x71D71c86b9011D2e6c50091e4F992bcbbe82EbeD",
   "expectedDeployer": "0x71D71c86b9011D2e6c50091e4F992bcbbe82EbeD",
-  "deployedAt": "2026-02-15T13:25:00Z",
-  "version": "v4-final",
+  "deployedAt": "2026-02-15T15:10:00Z",
+  "version": "v5-agent-wallets",
   "contracts": {
     "Gold": "0xC005b9aD6d60d0279128e7848b21f2f15E6eB9B4",
     "DungeonNFT": "0xA2a8a20C9D64E0381C96491073604bf889643934",
     "DungeonTickets": "0x9c0048e24BE6dB4a38DEf7dDA9A92266b42eb6E1",
-    "DungeonManager": "0x0f3ebCF7b18933F3903a720fD4Ad93DfffCA7A7f"
+    "DungeonManager": "0x94EFbF0c974528D2461504486847d6880CeE2f2b"
+  },
+  "previousContracts": {
+    "DungeonManager_v4": "0x0f3ebCF7b18933F3903a720fD4Ad93DfffCA7A7f"
   },
   "configuration": {
     "goldMinter": "DungeonManager",
@@ -22,8 +25,8 @@
     "ticketPrice": "100000000000000000000",
     "isConfigured": true,
     "testDungeons": [
-      {"tokenId": 0, "difficulty": 5, "partySize": 2, "theme": "Cave", "rarity": "Common"},
-      {"tokenId": 1, "difficulty": 8, "partySize": 3, "theme": "Crypt", "rarity": "Rare"}
+      {"dungeonId": 0, "tokenId": 2, "difficulty": 5, "partySize": 2, "theme": "Cave", "rarity": "Common"},
+      {"dungeonId": 1, "tokenId": 3, "difficulty": 8, "partySize": 3, "theme": "Crypt", "rarity": "Rare"}
     ],
     "ticketsMinted": 10
   },

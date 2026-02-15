@@ -110,6 +110,42 @@ class ContractClient:
         logger.info("tx_sent", method=method, tx_hash=tx_hash.hex(), nonce=nonce)
         return tx_hash.hex()
 
+    async def send_tickets_mint(self, to: str, amount: int) -> str:
+        """Mint tickets to an address (calls DungeonTickets.mint)."""
+        if not self.account:
+            raise RuntimeError("No runner private key configured")
+
+        # Load tickets contract
+        _tickets_abi_paths = [
+            os.path.join(os.path.dirname(__file__), "..", "out", "DungeonTickets.sol", "DungeonTickets.json"),
+            os.path.join(os.path.dirname(__file__), "abi", "DungeonTickets.json"),
+        ]
+        tickets_abi = []
+        for p in _tickets_abi_paths:
+            if os.path.exists(p):
+                with open(p) as f:
+                    tickets_abi = json.load(f)["abi"]
+                break
+
+        tickets_contract = self.w3.eth.contract(
+            address=Web3.to_checksum_address(settings.dungeon_tickets),
+            abi=tickets_abi,
+        )
+        fn = tickets_contract.functions.mint(Web3.to_checksum_address(to), amount)
+        nonce = await nonce_manager.get_nonce(self.w3, self.runner_address)
+        gas_price = self.w3.eth.gas_price
+        tx = fn.build_transaction({
+            "from": self.runner_address,
+            "nonce": nonce,
+            "chainId": settings.chain_id,
+            "gas": 200_000,
+            "gasPrice": int(gas_price * 1.5),
+        })
+        signed = self.account.sign_transaction(tx)
+        tx_hash = self.w3.eth.send_raw_transaction(signed.raw_transaction)
+        logger.info("tickets_mint_sent", to=to, amount=amount, tx_hash=tx_hash.hex())
+        return tx_hash.hex()
+
     def get_receipt(self, tx_hash: str) -> dict | None:
         try:
             receipt = self.w3.eth.get_transaction_receipt(tx_hash)

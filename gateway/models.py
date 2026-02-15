@@ -58,6 +58,12 @@ class SubmitDMRequest(BaseModel):
     action_id: str = Field(..., max_length=64)
 
 
+class SimpleLinkRequest(BaseModel):
+    wallet_address: str = Field(..., min_length=42, max_length=42)
+
+class EnterBuildRequest(BaseModel):
+    dungeon_id: int = Field(..., ge=0)
+
 class AcceptDMRequest(BaseModel):
     session_id: int = Field(..., ge=0)
     dm_epoch: int = Field(..., ge=0)
