@@ -15,6 +15,9 @@ async def process_pending_txs():
         await process_single_tx(tx)
 
 
+ENTRY_BOND = 10_000_000_000_000_000  # 0.01 MON in wei
+
+
 async def process_single_tx(tx: dict):
     """Submit a single transaction to the chain."""
     tx_id = tx["id"]
@@ -23,7 +26,9 @@ async def process_single_tx(tx: dict):
 
     try:
         await update_tx_status(tx_id, "submitting")
-        tx_hash = await client.send_tx(method, *params)
+        # enterDungeon requires ENTRY_BOND as msg.value
+        value = ENTRY_BOND if method == "enterDungeon" else 0
+        tx_hash = await client.send_tx(method, *params, value=value)
         await update_tx_status(tx_id, "submitted", tx_hash=tx_hash)
         logger.info("tx_submitted", tx_id=tx_id, tx_hash=tx_hash)
 

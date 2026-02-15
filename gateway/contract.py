@@ -80,7 +80,7 @@ class ContractClient:
         except Exception:
             return False
 
-    async def send_tx(self, method: str, *args) -> str:
+    async def send_tx(self, method: str, *args, value: int = 0) -> str:
         """Build, sign, and send a transaction. Returns tx hash."""
         if not self.account:
             raise RuntimeError("No runner private key configured")
@@ -93,13 +93,17 @@ class ContractClient:
         # Use 1.5x current gas price to ensure acceptance
         adjusted_gas = int(gas_price * 1.5)
         
-        tx = fn.build_transaction({
+        tx_params = {
             "from": self.runner_address,
             "nonce": nonce,
             "chainId": settings.chain_id,
             "gas": 500_000,
             "gasPrice": adjusted_gas,  # Use legacy gasPrice for Monad
-        })
+        }
+        if value > 0:
+            tx_params["value"] = value
+        
+        tx = fn.build_transaction(tx_params)
 
         signed = self.account.sign_transaction(tx)
         tx_hash = self.w3.eth.send_raw_transaction(signed.raw_transaction)
