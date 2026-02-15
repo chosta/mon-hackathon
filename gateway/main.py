@@ -829,3 +829,70 @@ app.mount("/dashboard", StaticFiles(directory=str(static_dir), html=True), name=
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8080)
+
+
+# ─── Admin Endpoints (dev only) ──────────────────────────
+
+@app.post("/admin/register-runner")
+async def admin_register_runner():
+    """Register the runner wallet as an agent."""
+    try:
+        # Check if already registered
+        is_registered = client.contract.functions.registeredAgents(client.runner_address).call()
+        if is_registered:
+            return {"ok": True, "message": "Runner already registered", "address": client.runner_address}
+        
+        # Register
+        tx_hash = await client.send_tx("registerAgent", client.runner_address)
+        return {"ok": True, "tx_hash": tx_hash, "address": client.runner_address}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/admin/mint-runner-tickets")
+async def admin_mint_runner_tickets():
+    """Mint tickets to the runner wallet."""
+    from config import settings
+    from web3 import Web3
+    try:
+        # Load tickets contract
+        tickets_abi_path = os.path.join(os.path.dirname(__file__), "abi", "DungeonTickets.json")
+        with open(tickets_abi_path) as f:
+            tickets_abi = json.load(f)["abi"]
+        
+        w3 = Web3(Web3.HTTPProvider(settings.rpc_url))
+        tickets = w3.eth.contract(
+            address=Web3.to_checksum_address(settings.dungeon_tickets),
+            abi=tickets_abi,
+        )
+        
+        # Build mint tx
+        fn = tickets.functions.mint(client.runner_address, 5)
+        nonce = w3.eth.get_transaction_count(client.runner_address, "pending")
+        
+        tx = fn.build_transaction({
+            "from": client.runner_address,
+            "nonce": nonce,
+            "chainId": settings.chain_id,
+            "gas": 200_000,
+            "gasPrice": int(w3.eth.gas_price * 1.5),
+        })
+        
+        signed = w3.eth.account.sign_transaction(tx, settings.runner_private_key)
+        tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
+        
+        return {"ok": True, "tx_hash": tx_hash.hex(), "to": client.runner_address, "amount": 5}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/admin/unlink-wallet")
+async def admin_unlink_wallet(moltbook_id: str = Query(...)):
+    """Admin: Remove wallet binding for an agent (allows re-linking)."""
+    db = await get_db()
+    result = await db.execute("DELETE FROM wallet_bindings WHERE moltbook_id = ?", (moltbook_id,))
+    await db.commit()
+    if result.rowcount == 0:
+        return {"ok": False, "message": f"No wallet binding found for {moltbook_id}"}
+    logger.info("wallet_unlinked", moltbook_id=moltbook_id)
+    return {"ok": True, "message": f"Unlinked wallet for {moltbook_id}"}
