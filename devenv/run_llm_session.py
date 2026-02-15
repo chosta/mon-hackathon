@@ -188,7 +188,10 @@ _gemini_models = {}
 
 def _get_gemini_model(model_name: str = "gemini-2.0-flash"):
     if model_name not in _gemini_models:
-        genai.configure(api_key=os.environ.get("GEMINI_API_KEY", "AIzaSyB76P9efmARXwaXdDcIRxjlfRx9ZU95eHU"))
+        gemini_key = os.environ.get("GEMINI_API_KEY")
+        if not gemini_key:
+            raise RuntimeError("GEMINI_API_KEY env var required")
+        genai.configure(api_key=gemini_key)
         _gemini_models[model_name] = genai.GenerativeModel(model_name)
     return _gemini_models[model_name]
 
