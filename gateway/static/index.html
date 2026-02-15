@@ -491,7 +491,7 @@ async function refresh() {
     const [overview, leaderboard, activity, epoch, dungeonOverview, dungeons] = await Promise.all([
       fetch('https://mon-hackathon-gateway-production.up.railway.app/stats/overview').then(r => r.json()),
       fetch('https://mon-hackathon-gateway-production.up.railway.app/leaderboard/table').then(r => r.json()),
-      fetch(`/activity/recent?minutes=${minutes}`).then(r => r.json()),
+      fetch(`https://mon-hackathon-gateway-production.up.railway.app/activity/recent?minutes=${minutes}`).then(r => r.json()),
       fetch('https://mon-hackathon-gateway-production.up.railway.app/game/epoch').then(r => r.json()).catch(() => null),
       fetch('https://mon-hackathon-gateway-production.up.railway.app/dungeons/overview').then(r => r.json()).catch(() => null),
       fetch('https://mon-hackathon-gateway-production.up.railway.app/dungeons/list').then(r => r.json()).catch(() => []),

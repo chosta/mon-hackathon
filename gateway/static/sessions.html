@@ -183,7 +183,7 @@ function renderSessions(sessions) {
 async function refresh() {
   const showCompleted = document.getElementById('showCompleted').checked;
   try {
-    const sessions = await fetch(`/sessions/list?include_completed=${showCompleted}&limit=50`).then(r => r.json());
+    const sessions = await fetch(`https://mon-hackathon-gateway-production.up.railway.app/sessions/list?include_completed=${showCompleted}&limit=50`).then(r => r.json());
     renderSessions(sessions);
     document.getElementById('statusDot').className = 'dot';
     document.getElementById('statusText').textContent = `${sessions.length} sessions`;
